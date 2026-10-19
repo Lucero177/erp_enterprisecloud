@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_USER: erp, POSTGRES_PASSWORD: erp, POSTGRES_DB: erp }
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U erp"], interval: 5s, retries: 10 }
+  backend:
+    build: ./backend
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      DATABASE_URL: postgresql+psycopg2://erp:erp@db:5432/erp
+      SECRET_KEY: ${SECRET_KEY:-cambia-esto-en-produccion}
+      CORS_ORIGINS: http://localhost:8080,http://localhost:5173
+      S3_BUCKET: ${S3_BUCKET:-erp-enterprisecloud-docs}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+    ports: ["8000:8000"]
+  frontend:
+    build: ./frontend
+    depends_on: [backend]
+    ports: ["8080:80"]
+volumes:
+  pgdata:
